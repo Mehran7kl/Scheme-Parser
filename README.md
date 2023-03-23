@@ -1,2 +1,2 @@
 # Language-Engine-Test
-A practice to implement lexical analysis, parsing, compilation qnd 
+A practice to implement lexical analysis, parsing, compilation and 
