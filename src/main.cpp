@@ -11,7 +11,7 @@
 using namespace mr;
 int main(int argc, char *argv[])
 {
-	Parser parser;
+	//Parser parser;
 	Scanner sc{"testr=9; 1234(78)y"};
 	sc.print_all();
 	
