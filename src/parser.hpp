@@ -2,35 +2,77 @@
 #include <string_view>
 #include<vector>
 #include "scanner.hpp"
-
+#include <iostream>
 namespace  mr{
 
+static int i=0;
 struct AstNode
 {
 	enum Type
 	{
-		ADD, ASSIGN, EXPR,
-		STATEMENT,FUNCTION,
-		VALUE, VAR, CALL, CONTEXT
+		NIL,
+		SYMBOL,
+		INT,FLOAT,
+		STRING,
+		NODE,
 		
 	};
-	Type type;
+	
+	Type type{NIL};
 	AstNode* next{};
-	union{
-	AstNode* child;
-	std::string_view str{};
-	};
+	inline void print()
+	{
+		
+		switch(type){
+			case SYMBOL:
+				std::cout<<( char*)data;
+				break;
+			case INT:
+				std::cout<<*(int*)data;
+				break;
+			case FLOAT:
+				std::cout<<*(float*)data;
+				break;
+			case STRING: 
+				std::cout<<"\""<<(char*)data<<"\"";
+				break;
+			case NODE:
+				std::cout<<"(";
+				((AstNode*)data)->print();
+				break;
+			case NIL:
+				std::cout<<")";
+				break;
+		}
+		std::cout<<" ";
+		
+		if(next) next->print();
+	}
+	void* data{};
 	
 };
-	
+
 struct Parser
 {
-	std::vector<AstNode> heap{};
+	
+	std::vector<AstNode> statements{};
 	Token token{};
 	Scanner scanner;
+	std::allocator<AstNode> node_heap{};
+	std::allocator<char> char_heap{};
+	std::allocator<int> int_heap{};
+	std::allocator<float> float_heap{};
 	
-	Parser(char* const src):scanner{src}
+	Parser(char const* src):scanner{src}
 	{}
+	inline void print_tree()
+	{
+		for(auto& st: statements)
+		{
+			std::cout<<"(";
+			st.print();
+		}
+	}
 	inline Token next_token()
 	{
 		token=scanner.next_token();
@@ -41,22 +83,33 @@ struct Parser
 		std::cout<<msg<<std::endl;
 		abort();
 	}
-	//parses a token stream and returns token tree
-	//will be a context node;
-	AstNode* parse();
-	//returns a pointer to a new node;
+	inline char* alloc_str(std::string_view view)
+	{
+		char* ptr=char_heap.allocate(view.length()+1);
+		view.copy(ptr,view.length());
+		ptr[view.length()]='\0';
+		return ptr;
+	}
+	inline int* alloc_int(int val)
+	{
+		int* p=int_heap.allocate(1);
+		*p=val;
+		return p;
+	}
+	inline float* alloc_float(float val)
+	{
+		float* p=float_heap.allocate(1);
+		*p=val;
+		return p;
+	}
 	AstNode* alloc_node();
+	//parses a token stream and gens token tree
+	void parse();
 	//returns null when expr is void
 	AstNode* parse_expr();
-	//returns null on end
+	void parse_token(AstNode& node);
+	//returns null if no statement exist; at the end
 	AstNode* parse_statemnt();
-	//assumes that <name> have been parsed
-	AstNode* parse_call();
-	//assumes that <name (> have been parsed
-	AstNode* parse_fn_call();
-	//assumes that <name op> have been parsed
-	AstNode* parse_op_chain();
-	AstNode* parse_function();
 	
 };
 

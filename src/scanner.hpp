@@ -7,18 +7,18 @@ namespace mr
 enum class Token
 {
 	END,
-	LP,RP, LC,RC, LB,RB,
-	MUL,DIV,
-	ADD,SUB,
-	LT,GT,EQUAL,
-	ASSIGN,
-	SEMICOLON,COMMA,COLON,
+	LP,RP, 
+	//MUL,DIV,
+	//ADD,SUB,
+	//LT,GT,EQUAL,
+	//ASSIGN,
+	//SEMICOLON,COMMA,COLON,
 	STRING,
 	INT,
 	FLOAT,
-	IDEN,
+	NAME,
 	//keywords
-	FUNCTION, FOR,WHILE,
+	//FUNCTION, FOR,WHILE,
 	
 };
 struct Scanner
@@ -43,7 +43,7 @@ struct Scanner
 	{
 		static_assert(std::is_invocable_v<CheckF>, "expected invocable object");
 		static_assert(std::is_invocable_v<FailF>, "expected invocable object");
-
+		
 		for (advance(); c; advance())
 			if (check())
 			{
@@ -90,12 +90,19 @@ struct Scanner
 	Token next_token();
 	void skip_space();
 	void skip_line_comment();
-	void skip_multy_comment();
+	//void skip_multy_comment();
 	void scan_word();
 	void scan_num();
 	void scan_string();
 	//returns true if slah is div op
 	bool distinguish_slash();
+	
+	void match_identifier(Token tt)
+	{
+		if(next_token()!=tt)
+			report_error("expected diffrent ");
+		
+	}
 };
 
 } // namespace mr

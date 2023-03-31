@@ -11,59 +11,21 @@ void Scanner::print_all()
 		
 		switch(tt)
 		{
-			case Token::IDEN:
-				std::cout<<"IDEN "<<token_str;
-				break;
+			
 			case Token::INT:
 				std::cout<<"INT "<<token_str;
 				break;
+			case Token::NAME:
+				std::cout<<"NAME "<<token_str;
+				break;
 			case Token::STRING:
-				std::cout<<"IDEN "<<token_str;
-				break;
-			case Token::ASSIGN:
-				std::cout<<"=";
-				break;
-			case Token::ADD:
-				std::cout<<"+";
-				break;
-			case Token::SUB:
-				std::cout<<"-";
-				break;
-			case Token::MUL:
-				std::cout<<"*";
-				break;
-			case Token::DIV:
-				std::cout<<"/";
-				break;
-			case Token::LC:
-				std::cout<<"{";
-				break;
-			case Token::RC: 
-				std::cout<<"}";
-				break;
-			case Token::LB:
-				std::cout<<"[";
-				break;
-			case Token::RB:
-				std::cout<<"]";
+				std::cout<<"STR "<<token_str;
 				break;
 			case Token::LP:
 				std::cout<<"(";
 				break;
 			case Token::RP:
 				std::cout<<")";
-				break;
-			case Token::LT:
-				std::cout<<"<";
-				break;
-			case Token::GT:
-				std::cout<<">";
-				break;
-			case Token::SEMICOLON:
-				std::cout<<";";
-				break;
-			case Token::COMMA:
-				std::cout<<",";
 				break;
 			default: 
 				report_error("unhandled token");		
@@ -89,12 +51,8 @@ Token Scanner::next_token()
 		skip_space();
 		advance();
 	}
-	if (is_alpha(c))
-	{
-		scan_word();
-		tt = Token::IDEN;
-	}
-	else if (is_digit(c))
+	
+	if (is_digit(c))
 	{
 		scan_num();
 	//	advance();
@@ -108,64 +66,22 @@ Token Scanner::next_token()
 	case ')':
 		tt= Token::RP;
 		break;
-	case '<':
-		tt= Token::LT;
-		break;
-	case '>':
-		tt= Token::GT;
-		break;
-	case '[':
-		tt= Token::LB;
-		break;
-	case ']':
-		tt= Token::RB;
-		break;
-	case '{':
-		tt= Token::LC;
-		break;
-	case '}':
-		tt= Token::RC;
-		break;
-	case '*':
-		tt= Token::MUL;
-		break;
-	case '/':
-		if (distinguish_slash())
-			tt = Token::DIV;
-		else 
-		{
-			advance();
-			tt= next_token();
-			return tt;
-		}
-			break;
-	case '+':
-		tt= Token::ADD;
-		break;
-	case '-':
-		tt= Token::SUB;
-		break;
 	case ';':
-		tt= Token::SEMICOLON;
+		skip_line_comment();
+		advance();
+		tt= next_token();
 		break;
-	case ',':
-		tt= Token::COMMA;
-		break;
-	case '=':
-		tt= Token::ASSIGN;
-		break;
-	case '\'':
 	case '"':
 		scan_string();
-		
 		tt= Token::STRING;
 		break;
+	
 	case 0:
 		tt= Token::END;
 		break;
 	default:
-		report_error("unrecognized input");
-		tt= Token::END;
+		scan_word();
+		tt= Token::NAME;
 	}
 	advance();
 	return tt;
@@ -185,7 +101,7 @@ void Scanner::scan_word()
 	advance(
 		[this]() {
 			
-			return !is_alpha_num(c);
+			return !(is_alpha(c)||c=='_');
 		});
 	
 	token_str = {offset, (size_t)(buf_cursor - offset + 1)};
@@ -215,22 +131,6 @@ void Scanner::scan_string()
 	advance();
 	token_str = {offset, (size_t)(buf_cursor - offset)};
 }
-bool Scanner::distinguish_slash()
-{
-	advance();
-	switch (c)
-	{
-	case '/':
-		skip_line_comment();
-		break;
-	case '*':
-		skip_multy_comment();
-		break;
-	default:
-		return true;
-	}
-	return false;
-}
 
 void Scanner::skip_line_comment()
 {
@@ -240,18 +140,5 @@ void Scanner::skip_line_comment()
 		});
 }
 
-void Scanner::skip_multy_comment()
-{
-	advance(
-		[this]() {
-			if (c == '*')
-			{
-				advance();
-				if (c == '/')
-					return true;
-			}
-			return false;
-		},
-		[this]() { report_error("unterminated comment"); });
-}
+
 } // namespace mr
