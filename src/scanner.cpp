@@ -54,9 +54,7 @@ Token Scanner::next_token()
 	
 	if (is_digit(c))
 	{
-		scan_num();
-	//	advance();
-		tt= Token::INT;
+		tt= scan_num(false) ? Token::FLOAT : Token::INT;
 	}
 	else switch (c)
 	{
@@ -75,7 +73,17 @@ Token Scanner::next_token()
 		scan_string();
 		tt= Token::STRING;
 		break;
-	
+	case '-':
+		advance();
+		bool is_float;
+		if(is_digit(c)) {
+			is_float=scan_num(true);
+			tt= is_float? Token::FLOAT : Token::INT; 
+		}else{
+			scan_word();
+			tt=Token::NAME;
+		}
+		break;
 	case 0:
 		tt= Token::END;
 		break;
@@ -91,7 +99,7 @@ void Scanner::skip_space()
 {
 	advance(
 		[this]() {
-			return !is_space(c);
+			return !(c==' '|| c=='\n'||c=='\r'||c=='\t');
 		});
 }
 
@@ -101,21 +109,33 @@ void Scanner::scan_word()
 	advance(
 		[this]() {
 			
-			return !(is_alpha(c)||c=='_');
+			return !(is_alpha_num(c)||c=='_');
 		});
 	
 	token_str = {offset, (size_t)(buf_cursor - offset + 1)};
 }
-void Scanner::scan_num()
+bool Scanner::scan_num(bool negative)
 {
+	
 	char const *offset = buf_cursor;
-
+	bool saw_dot=false;
+	if(negative) offset-=1;
 	advance(
-		[this]() {
+		[this, &saw_dot]() {
+			
+			
+			if(c=='.'){
+				if(saw_dot) report_error("invalid syntax for number");
+				else{
+					saw_dot=true;
+					return false;
+				}
+			}
 			return !is_digit(c);
 		});
-
+	
 	token_str = {offset, (size_t)(buf_cursor - offset + 1)};
+	return saw_dot;
 }
 void Scanner::scan_string()
 {

@@ -1,89 +1,122 @@
 #include <parser.hpp>
 #include <iostream>
+
 using std::cout;
 using std::endl;
 
 namespace mr
 {
 
-AstNode* Parser::alloc_node()
+
+
+void Parser::print_tree()
 {
-	return node_heap.allocate(1);
+	for (auto st : statements)
+	
+	{
+		std::cout << "(";
+		auto& ptr =st;
+		ptr->foreach([](AstNode::Ptr p){
+			std::cout<<*p;
+		});
+		std::cout << ")\n";
+	}
+	std::cout<<endl;
+}
+Token Parser::next_token()
+{
+	token = scanner.next_token();
+	return token;
+}
+[[noreturn]] void Parser::panic(std::string_view msg)
+{
+	std::cout << msg << std::endl;
+	abort();
 }
 
 void Parser::parse()
 {
-	AstNode* current_node=nullptr;
+	if constexpr(LMODE){
+		std::cout<<"parsing started"<<std::endl;
+	}
+	AstNode::Ptr current_node = nullptr;
 	
-	while((current_node=parse_statemnt())!=nullptr)
+	while ((current_node = parse_statemnt()) != nullptr)
 	{
-		statements.push_back(*current_node);
+		statements.push_back(current_node);
+	}
+	if constexpr(LMODE){
+		std::cout<<"parsing ended"<<std::endl;
 	}
 }
-AstNode* Parser::parse_statemnt()
+AstNode::Ptr Parser::parse_statemnt()
 {
+	
 	next_token();
-	AstNode* node{};
-	if(token==Token::LP)
-		node=parse_expr();
-	else if(token==Token::END) return nullptr;
-	else panic("unexpected token");
+	AstNode::Ptr node{};
+	if (token == Token::LP)
+		node = parse_expr();
+	else if (token == Token::END)
+		return nullptr;
+	else
+		panic("unexpected token");
 	return node;
 }
 
-AstNode* Parser::parse_expr()
+AstNode::Ptr Parser::parse_expr()
 {
 	
-	AstNode* root=alloc_node();
-	auto node=root;
-	for(next_token();token!=Token::END;next_token())
+	AstNode::Ptr root = AstNode::make();
+	auto node = root;
+	for (next_token(); token != Token::END;)
 	{
-	 	if(token==Token::RP) break;
-	 	parse_token(*node);
-	 	node->next=alloc_node();
-	 	node=node->next;
+		
+		parse_token(node);
+		
+		if (next_token() == Token::RP)
+		{
+			node->append(nullptr);
+			break;
+		}
+		node =node->append(AstNode::make());
+		
 	}
-	if(token==Token::END) panic("Unterminated expr");
-	 return root;
+	if (token == Token::END)
+		panic("Unterminated expr");
+	
+	return root;
 }
-void Parser::parse_token(AstNode& root)
+void Parser::parse_token(AstNode::Ptr& root)
 {
-	//root.next=alloc_node();
-	switch(token)
+	
+	switch (token)
 	{
-		case Token::NAME:
-			root.type=AstNode::SYMBOL;
-			
-			
-			root.data=(void*)alloc_str(scanner.token_str);
-			break;
-		case Token::INT:
-			root.type=AstNode::INT;
-			{
+	case Token::NAME:
+		root->emplace<AstNode::SYMBOL>(scanner.token_str) ;
+		
+		break;
+	case Token::INT:
+		{
 			std::string str{scanner.token_str};
-			int val=atoi(str.c_str()); 
-			root.data=(void*)alloc_int(val);
-			}
-			break;
-		case Token::FLOAT:
-			root.type=AstNode::FLOAT;
-			{
+			int val = atoi(str.c_str());
+			root->emplace<AstNode::INT>(val) ;
+		}
+		break;
+	case Token::FLOAT:
+		{
 			std::string str{scanner.token_str};
-			float val=(float)atof(str.c_str()); 
-			root.data=(void*)alloc_float(val);
-			}
-			break;
-		case Token::STRING:
-			root.type=AstNode::STRING;
-			
-			root.data=(void*)alloc_str(scanner.token_str);
-			break;
-		case Token::LP:
-			root.type=AstNode::NODE;
-			root.data=parse_expr();
-			break;
-		default:
-		panic("unreacjeable");
+			float val = atof(str.c_str());
+			root->emplace<AstNode::FLOAT>(val) ;
+		}
+		break;
+	case Token::STRING:
+		root->emplace<AstNode::STRING>(scanner.token_str) ;
+		break;
+	case Token::LP:
+		root=parse_expr();
+		break;
+	default:
+		panic("unreachable");
 	}
 }
 } // namespace mr

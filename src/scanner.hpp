@@ -92,7 +92,8 @@ struct Scanner
 	void skip_line_comment();
 	//void skip_multy_comment();
 	void scan_word();
-	void scan_num();
+	// returns true if number is float
+	bool scan_num(bool neg);
 	void scan_string();
 	//returns true if slah is div op
 	bool distinguish_slash();

@@ -1,0 +1,5 @@
+(define f 
+	(lambda (a b) (add a b) )
+)
+(add 3 4)
+;(test )
