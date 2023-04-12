@@ -4,3 +4,4 @@ This is a practice to implement lexical analysis, parsing, compilation and inter
 I had implemted Parser and Interpreter using raw unions , pointers, cstring and custom allocators.
 But I faced lots of hard-debuging bugs. 
 So I'm migrating to safer methods like std::variant and smart pointets, etc.
+So the project is on incomplete state.
