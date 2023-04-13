@@ -3,6 +3,7 @@
 #include "str_hash.hpp"
 #include "zone.hpp"
 #include "node.hpp"
+#include "var_context.hpp"
 #include <variant>
 
 
@@ -53,15 +54,9 @@ struct Interpreter
 	
 	private:
 	
-	AstNode* alloc_node();
-	
-	Zone zone{256};
 	
 	//states
 	VarContext::Ptr local_context{};
-	char const* var_name{};
-	
-	
 	
 	VarContext::Ptr global_context{};
 };

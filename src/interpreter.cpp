@@ -5,69 +5,42 @@ namespace  mr{
 void Interpreter::lisp_add(AstNode::Ptr result, AstNode::Ptr rest)
 {
 	
-	if(rest==nullptr) panic(" needs argument");
-	resolve(rest);
-	bool is_float;
-	if(rest->index()==AstNode::FLOAT)
-		is_float=true;
-	else if(rest->index()==AstNode::INT)
-		is_float=false;
-	else panic("Can't add this type");
-	if(is_float) result->emplace<AstNode::FLOAT>(0.0f);
-	else result->emplace<AstNode::INT>(0);
+	if(!rest) panic(" needs argument");
 	
-	rest->foreach_next([this](AstNode::Ptr ptr)
+	int sum=0;
+	rest->foreach([this, &sum](AstNode::Ptr ptr)
 	{
+		
 		resolve(ptr);
-		if(is_float) std::get<AstNode::FLOAT>(*ptr);
+		
+		if(ptr->index()!=AstNode::INT) panic("add only work for int");
+		sum+=std::get<AstNode::INT>(*ptr);
 		return false;
 	});
 	
+	result->emplace<AstNode::INT>(sum);
 }
-void Interpreter::lisp_mul(AstNode* result, AstNode* rest)
+void Interpreter::lisp_mul(AstNode::Ptr result, AstNode::Ptr rest)
 {
 	
-	if(rest==nullptr) panic(" needs argument");
+	if(!rest) panic(" needs argument");
 	
-	resolve(rest);
-	result->type=rest->type;
-	switch(result->type)
-		{
-			case AstNode::INT:
-				result->value.int_value=1;
-				break;
-			case AstNode::FLOAT:
-				result->value.float_value=1;
-				break;
-			default:
-				panic("dont support this type for multiplication");
-		}
-	for(; rest;  rest=rest->next)
+	int ret=1;
+	rest->foreach([this, &ret](AstNode::Ptr ptr)
 	{
-		resolve(rest);
-		if(result->type!=rest->type)
-			panic("All args should be same type");
-		
-		switch(result->type)
-		{
-			case AstNode::INT:
-				result->value.int_value*=rest->value.int_value;
-				break;
-			case AstNode::FLOAT:
-				result->value.float_value*=rest->value.float_value;
-				break;
-			default:
-				panic("dont support this type for addition");
-				
-		}
-	}
-	
+		resolve(ptr);
+		if(ptr->index()!=AstNode::INT) panic("mul only work for int");
+		ret*=std::get<AstNode::INT>(*ptr);
+		return false;
+	});
+	result->emplace<AstNode::INT>(ret);
 }
 
 
 Interpreter::Interpreter()
 {
 	global_context=VarContext::make_shared(nullptr);
+	
 	local_context=global_context;
 	def_func("add", &Interpreter::lisp_add); 
 	def_func("mul", &Interpreter::lisp_mul); 
@@ -77,101 +50,103 @@ Interpreter::Interpreter()
 }
 
 
-AstNode* Interpreter::alloc_node()
-{
-	//return zone.allocate<AstNode>(1);
-	return new AstNode{};
-}
 
 
-void Interpreter::def_var(char const* str, AstNode* val)
+void Interpreter::def_var(char const* cstr, AstNode::Ptr val)
 {
+	std::string str{cstr};
 	global_context->set_var(str,val);
 }
 
 void Interpreter::def_func(char const* str,EvalFunc func )
 {
-	AstNode* node=zone.allocate<AstNode>(1);
-	node->type=AstNode::NATIVE_EVAL;
-	node->value.native_eval=func;
+	AstNode::Ptr node= AstNode::make();
+	node->emplace<AstNode::NATIVE_EVAL>(func);
 	global_context->set_var(str, node);
 }
 
-AstNode Interpreter::eval_root(AstNode* expr)
+AstNode::Ptr Interpreter::eval_root(AstNode::Ptr expr)
 {
-	auto result=alloc_node();
-	
-	eval(result, expr);
-	return *result;
+	auto result=AstNode::make();
+	eval(result,expr);
+	return result;
 }
-void Interpreter::lisp_define(AstNode* result, AstNode* rest)
+void Interpreter::lisp_define(AstNode::Ptr result, AstNode::Ptr rest)
 {
-	result->type=AstNode::NIL;
+	result->emplace<AstNode::NIL>();
 	if(!rest)panic("need name");
-	if(rest->type!=AstNode::SYMBOL) panic("need name for var");
-	auto val=rest->next;
+	if(rest->index()!=AstNode::SYMBOL) panic("need name for var");
+	auto val=rest->next_node();
 	if(!val)panic("need value");
 	
 	resolve(val);
 	
-	global_context->set_var(rest->value.str, rest->next);
+	global_context->set_var(std::get<AstNode::SYMBOL>(*rest).c_str(), rest->next_node());
 }
-void Interpreter::lisp_lambda(AstNode* result, AstNode* rest)
+void Interpreter::lisp_lambda(AstNode::Ptr result, AstNode::Ptr rest)
 {
-	result->type=AstNode::LAMBDA;
 	if(!rest)panic("need args");
-	if(!rest->next)panic("needs body");
-	result->value.node=rest;
+	if(!rest->next_node())panic("needs body");
+	
+	result->emplace<AstNode::LAMBDA>(rest);
+	
 }
 
-void Interpreter::eval(AstNode* result, AstNode* rest)
+void Interpreter::eval(AstNode::Ptr result, AstNode::Ptr rest)
 {
 		if(!rest){
-			result->type=AstNode::NIL;
+			
+			result->emplace<AstNode::NIL>();
 			return;
 		}
 	
 		
-		AstNode* val{};
-		if(rest->type==AstNode::SYMBOL){
+		AstNode::Ptr val{};
+		if(rest->index()==AstNode::SYMBOL){
 			
-			val=local_context->get_var(rest->value.str);
+			
+			val=local_context->get_var(std::get<AstNode::SYMBOL>(*rest));
+			
+			
+			
 			if(!val) panic("this var is not defined and not isnt a function:" ,*rest);
 		}
-		else if(rest->type==AstNode::NODE)
+		else if(rest->index()==AstNode::NODE)
 		{
 			resolve(rest);
 			val=rest;
-			if(val->type==AstNode::NIL) 
+			if(val->index()==AstNode::NIL) 
 				panic("returned null");
 		}
 		
-		
-		if(val->type==AstNode::NATIVE_EVAL)
+		if(val->index()==AstNode::NATIVE_EVAL)
 		{
-			EvalFunc func=val->value.native_eval;
-			(this->*func)(result, rest->next);
+			
+			EvalFunc func=std::get<AstNode::NATIVE_EVAL>(*val);
+			
+			(this->*func)(result, rest->next_node());
+			
 			return;
 		}
-		else if(val->type==AstNode::LAMBDA)
+		else if(val->index()==AstNode::LAMBDA)
 		{
 			
 			local_context=VarContext::make_shared(local_context);
-			auto args=val->value.node;
-			auto body=args->next;
-			auto param_ptr=rest->next;
+			auto args=std::get<AstNode::LAMBDA>(*val);
+			auto body=args->next_node();
+			auto param_ptr=rest->next_node();
 			
-			for(auto arg_ptr=args->value.node;
+			for(auto arg_ptr=std::get<AstNode::NODE>(*args);
 					arg_ptr;
-					arg_ptr=arg_ptr->next)
+					arg_ptr=arg_ptr->next_node())
 			{
-				if(arg_ptr->type!=AstNode::SYMBOL)
+				if(arg_ptr->index()!=AstNode::SYMBOL)
 					panic("invalid argument name");
 				if(!param_ptr) panic("need more parameters");
 				resolve(param_ptr);
-				local_context->set_var(arg_ptr->value.str, param_ptr);
+				local_context->set_var(std::get<AstNode::SYMBOL>(*arg_ptr), param_ptr);
 				
-				param_ptr=param_ptr->next;
+				param_ptr=param_ptr->next_node();
 			}
 			
 			resolve_to(result,body);
@@ -182,31 +157,36 @@ void Interpreter::eval(AstNode* result, AstNode* rest)
 		panic("unreachable");
 	
 }
-void Interpreter::resolve_to(AstNode* result, AstNode* raw)
+void Interpreter::resolve_to(AstNode::Ptr result, AstNode::Ptr raw)
 {
-	assert(result&& raw && "require nonull args");
-	switch(raw->type){
+	assert(result && raw && "require nonull args");
+	
+	switch(raw->index()){
 		case AstNode::NODE:
-			eval(result, raw->value.node);
+			eval(result, std::get<AstNode::NODE>(*raw));
 			break;
 		case AstNode::SYMBOL:
 			{
-				auto val=local_context->get_var(raw->value.str);
+				
+				auto val=local_context->get_var(std::get<AstNode::SYMBOL>(*raw));
+				
 				if(!val) panic("undefined symbol:", *raw);
-				result->type=val->type;
-				result->value=val->value;
+				result->content_of(val);
+				
 			}
 			break;
 		default:
 			if(raw==result)break;
-			result->type=raw->type;
-			result->value=raw->value;
+			
+			{
+			result->content_of(raw);
+			}
 			break;
 	}
 	
 }
 //make sure to not resolve wrongly a node that is used more than once
-void Interpreter::resolve(AstNode* raw)
+void Interpreter::resolve(AstNode::Ptr raw)
 {
 	resolve_to(raw,raw);
 }

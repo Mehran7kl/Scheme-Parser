@@ -18,6 +18,7 @@ void Parser::print_tree()
 		auto& ptr =st;
 		ptr->foreach([](AstNode::Ptr p){
 			std::cout<<*p;
+			return false; 
 		});
 		std::cout << ")\n";
 	}
@@ -67,15 +68,16 @@ AstNode::Ptr Parser::parse_expr()
 {
 	
 	AstNode::Ptr root = AstNode::make();
+	
 	auto node = root;
 	for (next_token(); token != Token::END;)
 	{
 		
 		parse_token(node);
 		
+		std::cout<<*node<<std::endl;
 		if (next_token() == Token::RP)
 		{
-			node->append(nullptr);
 			break;
 		}
 		node =node->append(AstNode::make());
@@ -83,7 +85,6 @@ AstNode::Ptr Parser::parse_expr()
 	}
 	if (token == Token::END)
 		panic("Unterminated expr");
-	
 	return root;
 }
 void Parser::parse_token(AstNode::Ptr& root)
@@ -113,7 +114,7 @@ void Parser::parse_token(AstNode::Ptr& root)
 		root->emplace<AstNode::STRING>(scanner.token_str) ;
 		break;
 	case Token::LP:
-		root=parse_expr();
+		root->emplace<AstNode::NODE>(parse_expr());
 		break;
 	default:
 		panic("unreachable");

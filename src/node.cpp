@@ -61,5 +61,9 @@ AstNode::Ptr AstNode::append(AstNode::Ptr ptr)
 	next=ptr;
 	return ptr;
 }
+AstNode::Ptr AstNode::next_node()
+{
+	return next;
+}
 
 }

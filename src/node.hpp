@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-#include "var_context.hpp"
+
 #include <variant>
 
 namespace mr{
@@ -39,7 +39,16 @@ namespace mr{
 		// in case of lambda , value.node points to args node and the next pf that will be body node
 		LAMBDA,
 	};
-	
+	template <Type type>
+	auto get(){
+		return std::get<type>(*this);
+	}
+	void content_of(AstNode::Ptr ptr)
+	{
+		auto _next= next_node();
+		*this = *ptr;
+		next=_next;
+	}
 	template <typename FuncT>
 	void foreach(FuncT func)
 	{
@@ -58,10 +67,11 @@ namespace mr{
 		}
 	}
 	AstNode::Ptr append(AstNode::Ptr ptr);
-	AstNode operator + (AstNode&& that);
+	AstNode::Ptr next_node();
 	static AstNode::Ptr make();
+	
 	private:
-	std::shared_ptr<AstNode> next{};
+	AstNode::Ptr next{};
 	
 }; 
 using EvalFunc= void( Interpreter::*)(AstNode::Ptr result, AstNode::Ptr rest);

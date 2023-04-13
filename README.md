@@ -10,7 +10,8 @@ Implementing
 ### The Language
 A LISP dialect. Minimalist Scheme as close as possible.
 #### Current state
-I had implemted Parser and Interpreter using raw unions , pointers, cstring and custom allocators.
+I have implemted Parser and Interpreter using raw unions , pointers, cstring and custom allocators.
 But I faced lots of hard-debuging bugs. 
-So I'm migrating to safer methods like std::variant and smart pointets, etc.
-So the project is on incomplete state.
+Now I adopted safer methods like std::variant and smart pointets, etc.
+Finally it's on alpha state; means it's working tho not reliable.
+

@@ -13,9 +13,9 @@ Ptr VarContext::make_shared(Ptr const& outer)
 	return ptr;
 }
 
-AstNode* VarContext::get_var(char const* str)
+AstNode::Ptr VarContext::get_var(std::string const& str)
 {
-	auto ptr{this};
+	auto ptr{this} ;
 	
 	while(ptr){
 		auto val=ptr->context[str];
@@ -24,20 +24,11 @@ AstNode* VarContext::get_var(char const* str)
 	}
 	return nullptr;
 }
-AstNode const* VarContext::get_var(char const* str) const
-{
-	auto ptr{this};
-	
-	while(ptr){
-		auto val=ptr->context.at(str);
-		if(val) return val;
-		ptr=ptr->outer.get();
-	}
-	return nullptr;
-}
-AstNode* VarContext::set_var(char const* str, AstNode* val)
+
+AstNode::Ptr VarContext::set_var(std::string const& str, AstNode::Ptr val)
 {
 	context[str]=val;
+	return val;
 }
 std::ostream& operator << (std::ostream& out, AstNode const& node);
 std::ostream& operator << (std::ostream& out, VarContext const& context)

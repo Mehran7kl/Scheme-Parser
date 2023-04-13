@@ -26,7 +26,7 @@ struct cstr_comp_trait
 	}
 };
 template <typename ValT>
-struct str_hash_map :public std::unordered_map<char const*, ValT, DJB2_str_hash, cstr_comp_trait> 
+struct str_hash_map :public std::unordered_map<std::string, ValT> 
 {};
 
 //Prior implemation
